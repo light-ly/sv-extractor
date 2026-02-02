@@ -1,7 +1,7 @@
 # sv-extractor
 
 ## run
-`cargo run -- -i tests/basic_module.sv -o .`
+`cargo run -- -i tests/sv/basic_module.sv -o .`
 
 ## TODO
 - port
