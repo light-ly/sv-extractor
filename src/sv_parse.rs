@@ -33,7 +33,6 @@ pub fn parse_module(
         ports: Vec::new(),
         defines: Vec::new()
     };
-    let mut ansi_port_last_dir = "";
 
     for node in syntax_tree {
         match node {
@@ -57,9 +56,6 @@ pub fn parse_module(
                 }
             }
             RefNode::ModuleDeclaration(x) => {
-                let start_keyword = unwrap_node!(x, Keyword).unwrap();
-                let start_keyword = get_identifier(start_keyword).unwrap();
-
                 let id = unwrap_node!(x, ModuleIdentifier).unwrap();
                 let id = get_identifier(id).unwrap();
                 let name = syntax_tree.get_str(&id).unwrap();
@@ -125,6 +121,7 @@ mod tests {
 
         // 基本正确性检查：模块名和端口数量
         assert_eq!(module.name, "basic_module");
+        println!("Module: {:#?}", module);
         // assert!(!module.ports.is_empty());
     }
 }
