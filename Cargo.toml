@@ -6,3 +6,6 @@ edition = "2024"
 [dependencies]
 sv-parser = "0.13.4"
 clap = { version = "4", features = ["derive"] }
+regex = "1.12.2"
+lazy_static = "1.4.0"
+rhai = "1.24.0"

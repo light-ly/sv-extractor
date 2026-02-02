@@ -4,7 +4,5 @@
 `cargo run -- -i tests/sv/basic_module.sv -o .`
 
 ## TODO
-- port
 - parameter
 - comment
- 
