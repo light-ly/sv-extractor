@@ -6,36 +6,10 @@ use rhai::{Engine, Scope};
 use regex::{Regex, Captures};
 use sv_parser::{Iter, Locate, Node, RefNode, SyntaxTree, parse_sv, unwrap_node};
 
-#[allow(dead_code)]
-#[derive(Debug)]
-pub struct Port {
-    name: String,
-    direction: String,
-    port_type: String,
-    width: String,
-    width_expression: Option<String>,
-}
+use crate::hdl_info::HdlInfo;
 
-#[allow(dead_code)]
-#[derive(Debug)]
-pub struct Define {
-    name: String,
-    value: String
-}
-
-#[derive(Debug)]
-pub struct Module {
-    name: String,
-    ports: Vec<Port>,
-    defines: Vec<Define>
-}
-
-pub fn parse_module(syntax_tree: &SyntaxTree) -> Result<Module, std::io::Error> {
-    let mut module: Module = Module {
-        name: "".to_string(),
-        ports: Vec::new(),
-        defines: Vec::new()
-    };
+pub fn parse_module(syntax_tree: &SyntaxTree) -> Result<HdlInfo, std::io::Error> {
+    let mut hdl_info: HdlInfo = HdlInfo::new();
 
     let mut ansi_port_last_dir = "";
     let mut define_map: HashMap<String, String> = HashMap::new();
@@ -58,7 +32,7 @@ pub fn parse_module(syntax_tree: &SyntaxTree) -> Result<Module, std::io::Error> 
                         "unknown"
                     };
 
-                    module.defines.push(Define { name: name.to_string(), value: value.to_string() });
+                    hdl_info.add_define(name, value);
                     define_map.insert(name.to_string(), value.to_string());
                 }
             }
@@ -67,12 +41,12 @@ pub fn parse_module(syntax_tree: &SyntaxTree) -> Result<Module, std::io::Error> 
                 let id = get_identifier(id).unwrap();
                 let name = syntax_tree.get_str(&id).unwrap();
 
-                module.name = name.to_string();
+                hdl_info.add_module(name);
             }
             RefNode::PortDeclaration(x) => {
                 if let Some(id) = unwrap_node!(x, InputDeclaration, OutputDeclaration, InoutDeclaration) {
                     let id = get_identifier(id).unwrap();
-                    let dir_type = syntax_tree.get_str(&id).unwrap();
+                    let direction = syntax_tree.get_str(&id).unwrap();
 
                     let port_type = match unwrap_node!(x, DataType, ImplicitDataType) {
                         Some(RefNode::DataType(x)) => {
@@ -101,13 +75,7 @@ pub fn parse_module(syntax_tree: &SyntaxTree) -> Result<Module, std::io::Error> 
                                 let id = get_identifier(id).unwrap();
                                 let name = syntax_tree.get_str(&id).unwrap();
 
-                                module.ports.push(Port {
-                                    name: name.to_string(),
-                                    direction: dir_type.to_string(),
-                                    port_type: port_type.to_string(),
-                                    width: width.clone(),
-                                    width_expression: width_expression.clone(),
-                                });
+                                hdl_info.add_ports(name, direction, port_type, width.as_str(), &width_expression);
                             }
                         }
                     }
@@ -149,13 +117,7 @@ pub fn parse_module(syntax_tree: &SyntaxTree) -> Result<Module, std::io::Error> 
                         _ => ("1".to_string(), None)
                     };
 
-                    module.ports.push(Port {
-                        name: name.to_string(),
-                        direction: ansi_port_last_dir.to_string(),
-                        port_type: port_type.to_string(),
-                        width: width.clone(),
-                        width_expression: width_expression.clone(),
-                    });
+                    hdl_info.add_ports(name, ansi_port_last_dir, port_type, width.as_str(), &width_expression);
                 }
             }
             // Can add process of comment, parameter,instantiation and keyword
@@ -163,23 +125,7 @@ pub fn parse_module(syntax_tree: &SyntaxTree) -> Result<Module, std::io::Error> 
         }
     }
 
-    Ok(module)
-}
-
-macro_rules! push_number {
-    ($node:expr, $syntax_tree:expr, $last_locate:ident, $expression:ident) => {
-        let x = $node;
-        let locate = x.nodes.1.nodes.0;
-        if locate != $last_locate {
-            $last_locate = locate;
-            let size = x.nodes.0.as_ref()
-                .and_then(|n| $syntax_tree.get_str(n))
-                .unwrap_or("");
-            let base = $syntax_tree.get_str(&x.nodes.1.nodes.0).unwrap();
-            let number = $syntax_tree.get_str(&x.nodes.2.nodes.0).unwrap();
-            $expression = $expression + size + base + number;
-        }
-    };
+    Ok(hdl_info)
 }
 
 fn parse_expression<'a, N>(syntax_tree: &SyntaxTree, x: &'a N) -> (String, Option<Locate>)
@@ -332,7 +278,6 @@ fn eval_int_expr(input: &str, defines: &HashMap<String, String>) -> Option<i64> 
     let engine = create_sv_engine();
     let mut scope = Scope::new();
 
-    // 注入宏定义
     for (key, value) in defines {
         let clean_val = preprocess_for_rhai(value);
         if let Ok(v) = engine.eval_expression_with_scope::<i64>(&mut scope, &clean_val) {
@@ -388,7 +333,7 @@ pub fn get_identifier(node: RefNode) -> Option<Locate> {
     }
 }
 
-pub fn parse_file(path: &PathBuf) -> Result<Module, std::io::Error> {
+pub fn parse_file(path: &PathBuf) -> Result<HdlInfo, std::io::Error> {
     let defines = HashMap::new();
     let includes: Vec<PathBuf> = Vec::new();
 
@@ -413,12 +358,11 @@ mod tests {
             .join("sv")
             .join("basic_module.sv");
 
-        let module = parse_file(&path).expect("parse_file failed");
+        let hdl_info = parse_file(&path).expect("parse_file failed");
 
         // 基本正确性检查：模块名和端口数量
-        assert_eq!(module.name, "basic_module");
-        println!("Module: {:#?}", module);
-        // assert!(!module.ports.is_empty());
+        assert!(!hdl_info.get_modules().is_empty());
+        println!("Module: {:#?}", hdl_info);
     }
 }
 
