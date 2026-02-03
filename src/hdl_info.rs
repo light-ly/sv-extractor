@@ -58,9 +58,9 @@ impl Module {
             import chisel3._
 
             class {} extends BlackBox {{
-                val io = new Bundle {{
+                val io = IO(new Bundle {{
             {}
-                }}
+                }})
             }}
         ", self.name, ports}
     }
