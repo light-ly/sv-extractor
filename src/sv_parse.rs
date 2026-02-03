@@ -1,5 +1,5 @@
 
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::format};
 use std::path::PathBuf;
 use lazy_static::lazy_static;
 use rhai::{Engine, Scope};
@@ -339,10 +339,9 @@ pub fn parse_file(path: &PathBuf) -> Result<HdlInfo, std::io::Error> {
 
     // Parse
     let result = parse_sv(&path, &defines, &includes, false, false);
-    if let Ok((syntax_tree, _)) = result {
-        parse_module(&syntax_tree)
-    } else {
-        Err(std::io::Error::new(std::io::ErrorKind::Other, "parse_file failed"))
+    match result {
+        Ok((syntax_tree, _)) => parse_module(&syntax_tree),
+        Err(e) => Err(std::io::Error::new(std::io::ErrorKind::Other, format!("parse_file failed [{}]: {}", path.display(), e)))
     }
 }
 

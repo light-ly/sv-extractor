@@ -1,4 +1,4 @@
-use std::{fs, path::PathBuf};
+use std::{fs::{self, File}, path::PathBuf};
 use clap::Parser;
 
 mod hdl_info;
@@ -12,7 +12,7 @@ struct Args {
     output: String,
 }
 
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
 
     let input = PathBuf::from(args.input);
@@ -32,5 +32,15 @@ fn main() {
         hdl_info.merge_info(&info);
     }
 
-    println!("parse result: {:#?}", hdl_info);
+    // println!("parse result: {:#?}", hdl_info);
+    if output.exists() {
+        assert!(output.is_dir(), "Error: Output should be a dir");
+    } else {
+        fs::create_dir(&output)?;
+    }
+
+    let json_file = File::create(output.join("hdl_info.json"))?;
+    serde_json::to_writer_pretty(json_file, &hdl_info)?;
+
+    Ok(())
 }

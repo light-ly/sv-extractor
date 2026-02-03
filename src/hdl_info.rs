@@ -1,5 +1,7 @@
+use serde::{Serialize, Deserialize};
+
 #[allow(dead_code)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Port {
     name: String,
     direction: String,
@@ -9,19 +11,19 @@ pub struct Port {
 }
 
 #[allow(dead_code)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Define {
     name: String,
     value: String
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Module {
     name: String,
     ports: Vec<Port>
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct HdlInfo {
     defines: Vec<Define>,
     modules: Vec<Module>
