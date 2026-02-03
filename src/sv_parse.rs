@@ -1,5 +1,5 @@
 
-use std::{collections::HashMap, fmt::format};
+use std::collections::HashMap;
 use std::path::PathBuf;
 use lazy_static::lazy_static;
 use rhai::{Engine, Scope};

@@ -1,4 +1,5 @@
 use serde::{Serialize, Deserialize};
+use indoc::formatdoc;
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -27,6 +28,46 @@ pub struct Module {
 pub struct HdlInfo {
     defines: Vec<Define>,
     modules: Vec<Module>
+}
+
+impl Port {
+    fn to_chisel(&self) -> String {
+        format!("val {} = {}(UInt({}.W))", self.name, self.direction, self.width)
+    }
+}
+
+impl Module {
+    fn indent_block(text: &str, indent_size: usize) -> String {
+        let indent = " ".repeat(indent_size);
+        text.lines()
+            .map(|line| {
+                if line.is_empty() {
+                    line.to_string()
+                } else {
+                    format!("{}{}", indent, line)
+                }
+            })
+            .collect::<Vec<String>>()
+            .join("\n")
+    }
+
+    pub fn to_chisel(&self) -> String {
+        let ports = self.ports.iter().map(|p| p.to_chisel()).collect::<Vec<String>>().join("\n");
+        let ports = Self::indent_block(&ports, 8);
+        formatdoc! {"
+            import chisel3._
+
+            class {} extends BlackBox {{
+                val io = new Bundle {{
+            {}
+                }}
+            }}
+        ", self.name, ports}
+    }
+
+    pub fn get_name(&self) -> String {
+        self.name.clone()
+    }
 }
 
 impl HdlInfo {
