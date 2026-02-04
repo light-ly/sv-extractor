@@ -3,6 +3,9 @@ use clap::Parser;
 
 mod hdl_info;
 mod sv_parse;
+mod converter;
+
+use crate::converter::ChiselConverter;
 
 #[derive(Parser)]
 struct Args {
@@ -10,12 +13,6 @@ struct Args {
     input: String,
     #[arg(short = 'o', long = "output")]
     output: String,
-}
-
-fn write_to_chisel(path: &PathBuf, name: &str, contents: &str) {
-    if let Err(e) = fs::write(path.join(format!("{}.scala", name)), contents) {
-        eprintln!("Failed to write {} to chisel: {}", name.to_string(), e);
-    }
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -49,11 +46,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     serde_json::to_writer_pretty(json_file, &hdl_info)?;
 
     let chisel_path = output.join("chisel");
-    fs::create_dir_all(&chisel_path)?;
 
-    hdl_info.get_modules().iter().for_each(|m| {
-        write_to_chisel(&chisel_path, &m.get_name(), &m.to_chisel());
-    });
+    let _chisel_str = ChiselConverter::builder().emit_chisel_string(&hdl_info);
+    ChiselConverter::builder().emit_chisel(&chisel_path, &hdl_info);
+    ChiselConverter::builder().split_bundle().emit_chisel(&chisel_path.join("split_bundle"), &hdl_info);
 
     Ok(())
 }
