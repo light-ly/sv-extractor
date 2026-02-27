@@ -98,7 +98,7 @@ fn spinal_map_direction(direction: &str) -> &str {
     match direction {
         "input" => "in port",
         "output" => "out port",
-        _ => direction, // 兼容其他未知方向，避免程序崩溃
+        _ => direction,
     }
 }
 
