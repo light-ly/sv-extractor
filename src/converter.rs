@@ -30,6 +30,12 @@ impl ChiselConverter {
             write_to_file(&path, &m.get_name(), &module_to_chisel(m, self.split_bundle), "scala");
         });
     }
+
+    pub fn emit_spinal(&self, path: &PathBuf, hdl_info: &HdlInfo) {
+        hdl_info.get_modules().iter().for_each(|m| {
+            write_to_file(&path, &m.get_name(), &module_to_spinal(m, self.split_bundle), "scala");
+        });
+    }
 }
 
 fn write_to_file(path: &PathBuf, name: &str, contents: &str, suffix: &str) {
@@ -83,6 +89,49 @@ fn module_to_chisel(module: &Module, split_bundle: bool) -> String {
                 val io = IO(new Bundle {{
             {}
                 }})
+            }}
+        ", module.get_name(), ports}
+    }
+}
+
+fn spinal_map_direction(direction: &str) -> &str {
+    match direction {
+        "input" => "in port",
+        "output" => "out port",
+        _ => direction,
+    }
+}
+
+fn port_to_spinal(port: &Port) -> String {
+    format!("val {} = {} UInt({} bits)", port.get_name(), spinal_map_direction(port.get_direction().as_str()), port.get_width())
+}
+
+fn module_to_spinal(module: &Module, split_bundle: bool) -> String {
+    let ports = module.get_ports().iter().map(|p| port_to_spinal(p)).collect::<Vec<String>>().join("\n");
+    let ports = indent_block(&ports, 8);
+    if split_bundle {
+        let bundle_name = module.get_name() + "_Bundle";
+        formatdoc! {"
+            import spinal.core._
+            import spinal.lib._
+
+            class {} extends Bundle {{
+            {}
+            }}
+
+            class {} extends BlackBox {{
+                val io = new {}
+            }}
+        ", bundle_name, ports, module.get_name(), bundle_name}
+    } else {
+        formatdoc! {"
+            import spinal.core._
+            import spinal.lib._
+
+            class {} extends BlackBox {{
+                val io = new Bundle {{
+            {}
+                }}
             }}
         ", module.get_name(), ports}
     }

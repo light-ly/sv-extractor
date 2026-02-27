@@ -46,10 +46,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     serde_json::to_writer_pretty(json_file, &hdl_info)?;
 
     let chisel_path = output.join("chisel");
+    let spinal_path = output.join("spinal");
 
     let _chisel_str = ChiselConverter::builder().emit_chisel_string(&hdl_info);
     ChiselConverter::builder().emit_chisel(&chisel_path, &hdl_info);
     ChiselConverter::builder().split_bundle().emit_chisel(&chisel_path.join("split_bundle"), &hdl_info);
+
+    ChiselConverter::builder().emit_spinal(&spinal_path, &hdl_info);
+    ChiselConverter::builder().split_bundle().emit_spinal(&spinal_path.join("split_bundle"), &hdl_info);
 
     Ok(())
 }
